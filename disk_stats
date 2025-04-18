@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# Get root filesystem usage
+read -r fs size used avail percent mount <<< $(df -h / | awk 'NR==2')
+
+echo "$fs | ${used}B / ${size}B ($percent) | Avail: $avail"

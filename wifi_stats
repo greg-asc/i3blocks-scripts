@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Auto-detect WiFi interface
+iface=$(awk '$1 ~ /w/ {print $1}' /proc/net/wireless | sed 's/://')
+
+# Check if interface found
+if [ -z "$iface" ]; then
+    echo "No WiFi interface found."
+    exit 1
+fi
+
+# Get SSID, signal (dBm), bitrate
+read -r ssid signal_dbm bitrate < <(iw dev "$iface" link | awk '
+    /SSID:/ {ssid=$2}
+    /signal:/ {signal=$2}
+    /tx bitrate:/ {bitrate=$3 " " $4}
+    END {print ssid, signal, bitrate}
+')
+
+# Get signal quality from /proc/net/wireless
+quality=$(awk -v iface="$iface" '$1 ~ iface {print int($3 * 100 / 70)}' /proc/net/wireless)
+
+# Get IP address
+ip_addr=$(ip -4 addr show "$iface" | awk '/inet / {print $2}' | cut -d/ -f1)
+
+# Print all on one line
+# echo "WiFi: $ssid | IP: $ip_addr | Signal: ${signal_dbm}dBm (${quality}%) | Bitrate: $bitrate"
+echo "$ssid [$ip_addr] ${signal_dbm}dBm (${quality}%) $bitrate"
